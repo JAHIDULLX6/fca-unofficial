@@ -1,4 +1,4 @@
-declare module '@sagor/fca-unofficial' {
+declare module 'sagor-fca-unofficial' {
   import type EventEmitter from "events";
   import type { Duplex, Readable, Transform } from "stream";
 

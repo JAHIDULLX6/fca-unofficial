@@ -12,7 +12,7 @@ console.log("");
 console.log("This is an npm library for interacting with Facebook Messenger.");
 console.log("To use it, require/import it in your bot project:");
 console.log("");
-console.log("  const login = require('@sagor/fca-unofficial');");
+console.log("  const login = require('sagor-fca-unofficial');");
 console.log("");
 console.log("  login({ appState: [...] }, (err, api) => {");
 console.log("    api.listenMqtt((err, event) => {");

@@ -1,5 +1,5 @@
 {
-  "name": "@sagor/fca-unofficial",
+  "name": "sagor-fca-unofficial",
   "version": "3.0.29",
   "description": "Unofficial Facebook Chat API for Node.js - Interact with Facebook Messenger programmatically",
   "main": "index.js",
@@ -45,12 +45,12 @@
     "fca"
   ],
   "author": {
-    "name": "DongDev",
+    "name": "SaGor",
     "url": "https://www.facebook.com/SAGOR.69x"
   },
   "contributors": [
     {
-      "name": "DongDev",
+      "name": "SaGor",
       "url": "https://github.com/SAGOR-KINGx"
     }
   ],

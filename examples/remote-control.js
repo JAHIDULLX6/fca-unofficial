@@ -11,7 +11,7 @@
 // }
 
 const fs = require("fs");
-const login = require("@sagor/fca-unofficial");
+const login = require("sagor-fca-unofficial");
 
 function loadAppState() {
   try {
