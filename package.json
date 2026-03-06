@@ -1,6 +1,6 @@
 {
   "name": "sagor-fca-unofficial",
-  "version": "3.1.30",
+  "version": "0.0.1",
   "description": "Unofficial Facebook Chat API for Node.js - Interact with Facebook Messenger programmatically",
   "main": "index.js",
   "types": "index.d.ts",
