@@ -1,89 +1,120 @@
 "use strict";
 
+const utils = require("../utils");
 const logger = require("../../../func/logger");
-const { generateOfflineThreadingID, getCurrentTimestamp } = require("../../utils/format");
+const { generateOfflineThreadingID } = require("../../utils/format");
 
 module.exports = function (defaultFuncs, api, ctx) {
-  return function setMessageReaction(reaction, messageID, threadID, callback, forceCustomReaction) {
+  return function setMessageReaction(reaction, messageID, threadID, callback) {
 
     if (typeof callback !== "function") callback = () => {};
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
 
-      if (!ctx.mqttClient) {
-        const err = new Error("MQTT client not connected");
-        callback(err);
-        return reject(err);
-      }
+      const mqttReact = () => {
+        return new Promise((res, rej) => {
 
-      if (typeof ctx.wsReqNumber !== "number") ctx.wsReqNumber = 0;
-      if (typeof ctx.wsTaskNumber !== "number") ctx.wsTaskNumber = 0;
+          if (!ctx.mqttClient) return rej("No MQTT");
 
-      const reqID = ++ctx.wsReqNumber;
-      const taskID = ++ctx.wsTaskNumber;
+          if (!ctx.wsReqNumber) ctx.wsReqNumber = 0;
+          if (!ctx.wsTaskNumber) ctx.wsTaskNumber = 0;
 
-      const threadKey = {
-        thread_fbid: threadID
+          const reqID = ++ctx.wsReqNumber;
+          const taskID = ++ctx.wsTaskNumber;
+
+          const threadKey =
+            threadID.length > 15
+              ? { thread_fbid: threadID }
+              : { other_user_fbid: threadID };
+
+          const payload = {
+            thread_key: threadKey,
+            message_id: messageID,
+            reaction: reaction,
+            actor_id: ctx.userID,
+            timestamp_ms: Date.now(),
+            sync_group: 1
+          };
+
+          const task = {
+            label: "29",
+            payload: JSON.stringify(payload),
+            queue_name: "reaction",
+            task_id: taskID
+          };
+
+          const mqttPayload = {
+            app_id: "772021112871879",
+            payload: JSON.stringify({
+              epoch_id: generateOfflineThreadingID(),
+              tasks: [task],
+              version_id: "25376272951962053"
+            }),
+            request_id: reqID,
+            type: 3
+          };
+
+          ctx.mqttClient.publish("/ls_req", JSON.stringify(mqttPayload), { qos: 1 }, err => {
+            if (err) return rej(err);
+            res(true);
+          });
+
+        });
       };
 
-      const taskPayload = {
-        thread_key: threadKey,
-        message_id: messageID,
-        reaction: reaction,
-        actor_id: ctx.userID,
-        timestamp_ms: getCurrentTimestamp(),
-        reaction_style: forceCustomReaction ? 1 : 0,
-        sync_group: 1,
-        send_attribution: 65537
+      const graphQLReact = () => {
+
+        const variables = {
+          data: {
+            client_mutation_id: ctx.clientMutationId++,
+            actor_id: ctx.userID,
+            action: reaction === "" ? "REMOVE_REACTION" : "ADD_REACTION",
+            message_id: messageID,
+            reaction: reaction
+          }
+        };
+
+        const qs = {
+          doc_id: "1491398900900362",
+          variables: JSON.stringify(variables),
+          dpr: 1
+        };
+
+        return defaultFuncs
+          .postFormData(
+            "https://www.facebook.com/webgraphql/mutation/",
+            ctx.jar,
+            {},
+            qs
+          )
+          .then(utils.parseAndCheckLogin(ctx.jar, defaultFuncs));
       };
 
-      const task = {
-        label: "29",
-        payload: JSON.stringify(taskPayload),
-        queue_name: "reaction",
-        task_id: taskID
-      };
+      try {
 
-      const mqttForm = {
-        app_id: "772021112871879",
-        payload: JSON.stringify({
-          epoch_id: parseInt(generateOfflineThreadingID()),
-          tasks: [task],
-          version_id: "25376272951962053"
-        }),
-        request_id: reqID,
-        type: 3
-      };
+        // Try MQTT first
+        await mqttReact();
+        callback(null, true);
+        resolve(true);
 
-      const handleResponse = (topic, message) => {
-        if (topic !== "/ls_resp") return;
+      } catch (mqttError) {
 
         try {
-          const json = JSON.parse(message.toString());
-          if (json.request_id !== reqID) return;
 
-          ctx.mqttClient.removeListener("message", handleResponse);
-
+          // Fallback GraphQL
+          await graphQLReact();
           callback(null, true);
           resolve(true);
 
-        } catch (err) {
-          ctx.mqttClient.removeListener("message", handleResponse);
-          callback(err);
-          reject(err);
-        }
-      };
+        } catch (gqlError) {
 
-      ctx.mqttClient.on("message", handleResponse);
+          logger("Reaction Error: " + gqlError, "error");
+          callback(gqlError);
+          reject(gqlError);
 
-      ctx.mqttClient.publish("/ls_req", JSON.stringify(mqttForm), { qos: 1 }, (err) => {
-        if (err) {
-          ctx.mqttClient.removeListener("message", handleResponse);
-          logger("setMessageReaction " + err, "error");
-          callback(err);
-          return reject(err);
         }
-      });
+
+      }
 
     });
   };
