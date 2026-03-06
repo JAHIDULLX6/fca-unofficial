@@ -1,4 +1,4 @@
-name: "publish npm"
+name: "publish npm by SaGor"
 
 on: push
 
