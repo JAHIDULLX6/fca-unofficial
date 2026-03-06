@@ -1071,7 +1071,7 @@ function loginHelper(appState, Cookie, email, password, globalOptions, callback)
           const userDataMatch = String(html).match(/\["CurrentUserInitialData",\[\],({.*?}),\d+\]/);
           if (userDataMatch) {
             const info = JSON.parse(userDataMatch[1]);
-            logger(`Đăng nhập tài khoản: ${info.NAME} (${info.USER_ID})`, "info");
+            logger(`Log in to your account: ${info.NAME} (${info.USER_ID})`, "info");
 
             // Check if Facebook response shows USER_ID = 0 (session dead)
             if (!isValidUID(info.USER_ID)) {
@@ -1120,7 +1120,7 @@ function loginHelper(appState, Cookie, email, password, globalOptions, callback)
               logger(`Database connection failed: ${errorMsg}`, "warn");
             }
           });
-        logger("FCA fix/update by DongDev (Donix-VN)", "info");
+        logger("FCA UPDATE BY SAGOR 🍒", "info");
         const emitter = new EventEmitter();
         const ctxMain = {
           userID,
