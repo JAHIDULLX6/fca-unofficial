@@ -16,27 +16,23 @@ module.exports = function (defaultFuncs, api, ctx) {
         return reject(err);
       }
 
-      if (!reaction || !messageID || !threadID) {
-        const err = new Error("Missing required parameters (reaction, messageID, threadID)");
-        callback(err);
-        return reject(err);
-      }
-
       if (typeof ctx.wsReqNumber !== "number") ctx.wsReqNumber = 0;
       if (typeof ctx.wsTaskNumber !== "number") ctx.wsTaskNumber = 0;
 
       const reqID = ++ctx.wsReqNumber;
       const taskID = ++ctx.wsTaskNumber;
 
+      const threadKey = {
+        thread_fbid: threadID
+      };
+
       const taskPayload = {
-        thread_key: {
-          thread_fbid: threadID
-        },
-        timestamp_ms: getCurrentTimestamp(),
+        thread_key: threadKey,
         message_id: messageID,
         reaction: reaction,
         actor_id: ctx.userID,
-        reaction_style: forceCustomReaction ? 1 : null,
+        timestamp_ms: getCurrentTimestamp(),
+        reaction_style: forceCustomReaction ? 1 : 0,
         sync_group: 1,
         send_attribution: 65537
       };
@@ -68,10 +64,14 @@ module.exports = function (defaultFuncs, api, ctx) {
 
           ctx.mqttClient.removeListener("message", handleResponse);
 
-          callback(null, { success: true });
-          resolve({ success: true });
+          callback(null, true);
+          resolve(true);
 
-        } catch {}
+        } catch (err) {
+          ctx.mqttClient.removeListener("message", handleResponse);
+          callback(err);
+          reject(err);
+        }
       };
 
       ctx.mqttClient.on("message", handleResponse);
